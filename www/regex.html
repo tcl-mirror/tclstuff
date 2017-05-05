@@ -1,0 +1,62 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"
+      "http://www.w3.org/TR/html4/strict.dtd"><html><head><title>Regex</title><meta content="text/html; charset=utf-8" http-equiv="content-type"></head><body><a href="index.html">[Back to Tcl Stuff]</a><h1>Regex</h1><p>This module provides an alternative regular expression facility which, unlike Tcl&apos;s built-in one,
+  does not convert strings to Unicode in order to match. I implemented this matcher as part of my <a href="utf8mode.html">Tcl Unicode reorganization</a>. <b>NOTE:</b> see section &quot;Restrictions&quot; below.</p><p> The best source that I&apos;ve come across for writing regular
+      expressions matchers is Russ Cox&apos;s fantastic <a href="https://swtch.com/~rsc/regexp/">series of articles</a>. The implementation here closely follows his guides.</p><p> One point worth pointing out that Cox only alludes to in his
+      articles is the recursive behavior of addthread (called &quot;follow&quot;
+      in my code). He notes that, in order to schedule threads in the
+      correct order for the next round to prioritize SPLIT&apos;s first
+      destination, addthread should process jumps recursively and add
+      all immediately reachable threads eagerly.</p><p> In practice, if you read his code you discover that addthread
+      also processes SAVE. This is because a jump might occur after
+      the SAVE, and if so, that jump destination should also be
+      scheduled immediately.</p><p> I&apos;ve generalized this notion to make a clearer (to me) split
+      between the &quot;execute&quot; and &quot;addthread&quot; (renamed &quot;follow&quot;)
+      loops. Now follow will always advance as far as possible, even
+      handling MATCH instructions, until it becomes clear that it
+      needs to read another character from the matched string, at
+      which point it cedes control back to execute.</p><p> This leaves only three instructions for the execute loop itself:
+      CHR, ANY, and BRACKET (the last one not implemented in Cox&apos;s
+      sample code). Before reading the first character, and after
+      that, after reading every single character, it calls follow to
+      advance the match as far as possible without reading input.</p><p> Another difference is that execute also informs follow whether it
+      has reached the end of the input. This way follow can process
+      the END instruction, and also drop a thread when no match has
+      been found rather than return to execute, upon end of input.</p><p> This division emphasizes the principle that the threads run in
+      lockstep in regards to consuming characters; while looping
+      through the thread list, the only decision to make is whether to
+      continue the thread or drop, given the current character. All
+      logic to process individual threads beyond that is handled by
+      follow.</p><p> The invariant that every thread scheduled will be ready to
+      consume a character also simplifies the code a little.</p><h2>Implementation notes</h2><p> This regex implementation is split into two parts. The front end,
+      in Tcl, parses (using <a href="combinators.html">combinators</a>) and compiles regexes to a compact (especially
+      compared to Cox&apos;s sample code) bytecode representation. The
+      backend, written in C, only executes bytecode.</p><p> The compiler procedure is <a href="memo.html">memoized</a> so
+  compilation only occurs once for each static occurence of a regular
+  expression.</p><p> Before execution, the C engine will verify that the bytecode is
+      safe to run&mdash;for eample, that it won&apos;t cause access to
+      out-of-bounds memory. After validation the bytecode along with
+      some summary information useful for execution (number of
+      instructions, maximum slot value, etc.) will be stored in the
+      internal representation of the object.</p><p> Whereas Cox&apos;s compiler directly outputs code in one pass,
+      patching jump addresses as soon as they become available, this
+      regex first converts the AST to an intermediate representation
+      silimar to continuation-passing style. The regex compiler in Tcl
+      then performs a couple of simple optimizations. First, jumps to
+      jumps are eliminated. Then, it will try to combine basic blocks
+      into &quot;traces&quot;&mdash;sorting basic blocks in such a way that
+      a jump is immediately followed by its label so that the jump can
+      be deleted.</p><p> Another (tiny) optimization is that, for (re)*, rather than
+      generating a SPLIT instruction and then looping back to the
+      first SPLIT, we duplicate the SPLIT.</p><h2>Restrictions</h2><p>This is only a proof-of-concept implementation, not production quality. The following
+   features are missing:<ul><li>Named bracket character classes (\d, \s, and \w are supported).</li><li>The regsub command (soon).</li></ul>The following are intentional incompatibilities which, while
+   negotiable, don&apos;t interest me personally so probably
+   won&apos;t get implemented unless I receive a patch (notably,
+   all features that make expressions non-regular are
+   omitted&mdash;this matcher will always match in linear time):<ul><li>Treating non-ASCII characters as anything other than just another character.
+    For example, \d only matches [0-9].
+  </li><li>The whole \A\Z vs. ^$ split. In this regex \A and \Z are
+    simply synonyms for ^ and $, and newline is never treated
+    specially (so no -line, -linestop, -lineanchor).</li><li>Case-insensitive matching.</li><li>Positive and negative lookaheads (useful&mdash;regular or not?)</li><li>Words and word boundaries ([[:&gt;:]], \m, \M, \y, \Y).</li><li>Backreferences (highly irregular)</li><li>Insignificant whitespace in regexes.</li><li>Compilation options and flags&mdash;this regex essentially
+    parses what re_syntax(n) calls AREs, minus omissions noted
+    on this list.</li></ul></p><p>In addition, this regex will currently not run with the default 16-bit Tcl_UniChar
+  (see <a href="utf8mode.html">here</a> for an explanation), though it would be easy to port.</p><h2>Downloads</h2><p>C source: <a href="regex.c.txt">regex.c.txt</a>, Tcl source: <a href="regex.tcl.txt">regex.tcl.txt</a>. You&apos;ll also need <a href="util.tcl.txt">util.tcl.txt</a>and <a href="tcl_parser.tcl.txt">tcl_parser.tcl.txt</a></p></body></html>

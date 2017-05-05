@@ -1,0 +1,33 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"
+      "http://www.w3.org/TR/html4/strict.dtd"><html><head><title>Records</title><meta content="text/html; charset=utf-8" http-equiv="content-type"></head><body><a href="index.html">[Back to Tcl Stuff]</a><h1>Records</h1><p>This module provides a single command (that I register as &quot;:&quot;) to
+  operate on records with named fields--or &quot;structures&quot; in some
+  languages. I use records to bundle data into a single value where
+  I would otherwise use a Tcl array, a
+  dict/<a href="critbit.html">tree</a>, or a plain list.</p><p>The idea behind implementing this facility in C is to give field
+    selectors an internal representation that makes working with
+  records about as fast as directly using lindex and lset.</p><h2>Usage</h2><table boder=0><tr><td style="background:#dcdcdc">: <i>recValue field</i></td><td>Select <i>field</i> from record.</td></tr><tr><td style="background:#dcdcdc">: <i>varName field value</i></td><td>Set field <i>fiel</i> to given value in record stored in variable <i>varName</i>.</td></tr></table><h2>Format</h2><p>A record is a list whose first element is a list of field
+    names. The remaining elements correspond to the named
+    fields. Extra elements are ignored (but see section &quot;Properties&quot;
+    below) while not having enough elements for the field list is an
+    error.</p><p>For example, <code>: {{a b c} 1 2 3} a</code> gives &quot;1&quot;.</p><h2>Performance Characteristics</h2><p>The first time an object is used as a field selector, the field
+    list is searched to give an index. The index is then stored inside
+    the object, along with the interned field name, to speed up
+    subsequent access. The field selector&apos;s internal representation is
+    also replaced with an array of interned field names.</p><p>Crucially, a cached field selector does not depend on any
+    particular field list object. When used, it simply verifies that
+    the index is within range, and that the field list has the same
+    field at that index (a pointer comparison). The symbol table for
+  interned field names is global to the interpreter.</p><p>This has a few implications. First, if you create records in
+    different places with different instances of literal strings that
+    spell the same field list, field access will be just as fast as if
+    the records&apos; field lists were the same object/literal
+    string. Meaning there&apos;s no requirement to have a single
+  constructor procedure for each record type.</p><p>Second, this makes it easy to create compatible extensions to
+    record types. For example, if you have a set of procedures that
+    expect a record with field list &quot;A B&quot;, you can pass in a record
+    with field list &quot;A B C D&quot; with no impact on performance, since all
+  fields will be found at the expected indices.</p><h2>Properties</h2><p>As mentioned previously, the C command (&quot;:&quot;, or whatever you
+    decide to name it) ignores elements in the record list past the
+  named fields.</p><p>I use the element after the final field to store a <a href="critbit.html">tree</a> containing additional named
+   fields, or &quot;properties&quot; (Lispers will recognize plists here).<a href="util.tcl.txt">Here</a> is some Tcl code to get and set
+   record properties (search for &quot;rec_prop&quot;). An absent property map is treated as empty.</p><h2>Download</h2><p>C source: <a href="record.c.txt">record.c.txt</a>(entry point: recordObjCmd), Tcl code for properties: <a href="util.tcl.txt">util.tcl.txt.</a></p></body></html>

@@ -1,0 +1,58 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"
+      "http://www.w3.org/TR/html4/strict.dtd"><html><head><title>UTF-8 Mode</title><meta content="text/html; charset=utf-8" http-equiv="content-type"></head><body><a href="index.html">[Back to Tcl Stuff]</a><h1>UTF-8 Mode</h1><h2>Overview</h2><p>I&apos;ve modified Tcl&apos;s string facilities to operate (for the most part)
+  directly on the UTF-8 representation of strings
+  rather than first converting to Unicode. This saves space and
+  allows the use of full multi-plane Unicode.</p><p>You can find the Fossil repository <a href="http://chiselapp.com/user/stefank/repository/tcl">here</a>. Please excuse the mega-commit; I started off directly editing the source from the 8.6.5 tarball. Also,
+   the state of the repo is sometimes out-of-date compared with trunk Tcl.</p><p><b>NOTE:</b> this is a proof of concept. See below for issues.</p><h2>The problem</h2><p> While strings in Tcl start off as UTF-8, most string procedures
+      will decode strings to Unicode and save both representations
+      inside the string object, using a 16-bit array to hold the
+      Unicode characters. Or more specifically, an array of
+      Tcl_UniChar. 16 bits used to be enough to hold any Unicode
+      character, but this is no longer the case today. Practically,
+      this means Tcl cannot handle Unicode characters outside of the <a href="https://en.wikipedia.org/wiki/Plane_%28Unicode%29#Basic_Multilingual_Plane">BMP</a>. The recent popularity of <a href="https://en.wikipedia.org/wiki/Emoji">emojis</a> on mobile platforms has thrown this issue into sharp relief.</p><h2>TCL_UTF_MAX and Tcl_UniChar</h2><p> It is possible to gain access to the extended Unicode characters
+      by setting the C preprocessor definition TCL_UTF_MAX to four or
+      six (up from a default of three) before including
+      tcl.h. However, this introduces a couple of issues. First, this
+      breaks binary compatibility with compiled Tcl
+      extensions. Second, this setting also changes the base type of
+      Tcl_UniChar to 32 bits, greatly expanding the storage used for
+      strings.</p><p> For ASCII strings, a string with cached Unicode representation
+      now uses five times as much space as one without, compared to
+      three times with 16-bit Tcl_UniChar. And in mainline Tcl almost
+      all string operations will cache the string&apos;s Unicode
+      representation.</p><p>My solution: set TCL_UTF_MAX to 6 (but see section &quot;Future
+      Improvements&quot; below) and stop caching decoded Unicode data.</p><h2>The Indexing Issue</h2><p>The goal of expanding Unicode range while keeping down storage
+  requirements clashes with the pervasive assumption in Tcl&apos;s C
+  and Tcl codebase that strings permit direct indexing using
+  Unicode character positions.</p><p>As a compromise, in my version, the String internal
+  representation structure contains a byte position-character
+  position pair, know as the &quot;cursor&quot;, which maintains a
+  single valid index into the UTF-8 string. Indexing by an
+  arbitrary character position involves first moving the cursor to
+  the requested location and then reading. This method minimizes
+  the work done when accessing strings in mostly linear order.</p><h2>Changes to Tcl</h2><p>Since we no longer hold onto the Unicode representation of
+  strings, uses of Tcl_GetUnicode and Tcl_GetUnicodeFromObj now
+  leak memory, and I have been removing these uses. I introduced
+  two new public functions, tentatively named
+  Tcl_GetStringFromCharAt (retrieve char pointer from Tcl_Obj
+  given character position&amp;mdash;this functionality is not
+  possible in vanilla Tcl without counting from the start of the
+  string) and Tcl_NewStringObjWithCharLength (create string object
+  and set its Unicode character length without checking), to help
+  with this effort.</p><p>So far, I&apos;ve converted &quot;string compare&quot;, &quot;string first&quot;, &quot;string index&quot;, &quot;string
+range&quot;, and associated VM operations.</p><p>Certain procedures, for example &quot;string last&quot; and &quot;string map&quot;, currently leak memory.</p><p>A major offender is regexp. I modified regexp to free Unicode
+  data it requests but now running regexp on a large string
+  repeatedly will decode and dispose the string&apos;s Unicode
+  representation many times. As a semi-solution, I have written a <a href="regex.html">new regular expressions facility</a>  which operates on UTF-8 directly.</p><h2>Future Improvements</h2><p>Some possible improvements:<ul><li>Rather than keeping a single cursor, use some sort of tree
+    structure to maintain references into the string, so that
+    indexing into the string is logarithmic in length of string,
+    at worst, while using drastically less memory than saving
+    full UTF-32.</li><li>Alternatively, go one step further and implement the String
+    internal rep on top of a rope data structure or similar.</li><li>Hold onto result of Tcl_GetUnicode. Free old value when a
+    new one is requested, and when string is deleted. Uses will
+    still be slow but this will at least close the memory leak.</li><li>Decouple UTF_TCL_MAX and size of Tcl_UniChar. Operate on
+    full Unicode with UTF-8 data, UCS-2 (UTF-16 without propert
+    surrogate pair handling, essentially) with
+    Tcl_GetUnicode-derived data. Regain binary compatibility put
+    possibly fatally inconsistent when given Unicode data
+    outside of BMP.</li></ul></p></body></html>

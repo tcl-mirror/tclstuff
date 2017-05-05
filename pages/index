@@ -1,0 +1,49 @@
+Tcl Stuff
+
+(p {This page collects some custom extensions and snippets I use in my Tcl projects.})
+
+(p
+ {C or mixed Tcl/C:}
+ ${
+   set mkls {apply {ls {
+     % {(ul {*}${lmap {file title desc} $ls {
+       % {(li (a href="$file.html" "$title") { - } {*}${% $desc})}
+     }})}
+   }}}
+   
+   {*}$mkls {
+     critbit {Critbit trees} {
+       {COW-friendly dict replacement that supports efficient update for shared objects as well as
+         additional operations.}
+     }
+     regex {Regex} {
+       {a new regex package intended for } (a href={utf8mode.html} {UTF-8 mode}) {.}
+     }
+     promise {Promises} {
+       {explicit lazy evaluation.}
+     }
+     memo {Memoization} {
+       {related to above.}
+     }
+     record {Records} {
+       {records with named fields.}
+     }
+   }
+ })
+
+(p
+ {Tcl-only code: }
+ ${{*}$mkls {
+   combinators {Parser combinators} {{DSL for writing parsers}}
+ }})
+
+(p
+ {Tcl customizations: }
+ ${{*}$mkls {
+   utf8mode {UTF-8 mode} {
+     {operate on UTF-8 strings directly rather than convert to unicode (or UCS-2).}
+   }}})
+
+{ - Stefan B. Komatsu (dograt in the Tcl chatroom, message for email).}
+   
+

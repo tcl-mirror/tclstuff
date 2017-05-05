@@ -1,0 +1,21 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"
+      "http://www.w3.org/TR/html4/strict.dtd"><html><head><title>Memoization</title><meta content="text/html; charset=utf-8" http-equiv="content-type"></head><body><a href="index.html">[Back to Tcl Stuff]</a><h1>Memoization</h1><p><b style="color:red">UPDATE: </b>The <code>memoize</code> command has been replaced by <code>memo</code>. Calling <code>memo a b c</code> has the same effect as directly calling <code>a b c</code>. The intrep of <i>c</i> will contain pointers to the command prefix it was
+   last called with (a and b). If they haven&apos;t change, the previous result is returned.</p><hr><p>This module provides the &quot;memoize&quot; command which takes an
+  existing command (or, more precisely, a command prefix list),
+  and registers another command that gives the same result as the
+  original (but see restrictions below) and caches the result in
+  its argument object to speed up repeated calls.</p><p>Usage: memoize <i>cmd original</i> ?<i>arg</i>...?</p><p>A few caveats apply here. First, the original command should be
+      referentially transparent and free of side effects. Otherwise
+      the original procedure and the memoized version will not behave
+      identically.</p><p>Second, this is not memoization in the technical sense, because
+      the caching here is based on object identity (pointer value). In
+      Tcl, pointer equality is sufficient for string equality across
+  time (thanks to copy-on-write), but not necessary.</p><p>&quot;Real&quot; memoization, given Tcl&apos;s EIAS (everything is a string)
+      semantics, would be looking up the value in a hash
+      table. However, if the original procedure obeys the restrictions
+      in the above paragraph, there will be no observable difference
+      between our memoization and &quot;real&quot; memoization.</p><h2>Rationale</h2><p>If you look at the C code, you&apos;ll see that the
+      implementation for memoization closely resembles the
+  implementation of <a href="promise.html">promises</a>.</p><p>Where memoization is helpful is when you want separate the
+      operating procedure from the data and still cache the result,
+      which is not possible with &quot;force&quot;.</p><h2>Download</h2><p>C source: <a href="memo.c.txt">memo.c.txt</a>. Entry point is memoizeInit.</p></body></html>

@@ -1,0 +1,8 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"
+      "http://www.w3.org/TR/html4/strict.dtd"><html><head><title>Promises</title><meta content="text/html; charset=utf-8" http-equiv="content-type"></head><body><a href="index.html">[Back to Tcl Stuff]</a><h1>Promises</h1><p>This module provides the &quot;force&quot; command which evaluates a script
+    and then saves the result inside the object so that next time it&apos;s
+    called with the same object it can give a result without
+  evaluating the script again.</p><p>Note that the usage of the word &quot;promise&quot; here follows the
+    terminology of Scheme&apos;s lazy evaluation facility, and has nothing
+  to do with concurrency.</p><p>Good practice suggests only using this command on idempotent
+  scripts with no side effects.</p><h2>Download</h2><p>C source: <a href="lazy.c.txt">lazy.c.txt</a>. File exports a single function: <code>void lazyInit(Tcl_Interp *)</code>, which registers the &quot;force&quot; command.</p></body></html>

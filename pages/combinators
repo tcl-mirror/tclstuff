@@ -1,0 +1,10 @@
+Parser Combinators
+(p
+ {Write-up coming. In the meantime, please peruse the }
+ (a href={parse.tcl.txt} {source})
+ {. You also need }
+ (a href={util.tcl.txt} {util.tcl.txt})
+ {. } (b {NOTE:})
+ { this package is not meant for creating fast parsers. I use it to embed DSLs into
+   Tcl code. Such code will always be brace-quoted literals. As long as the parsers
+   are } (a href={memo.html} {memoized}) {, code will not be parsed more than once.})

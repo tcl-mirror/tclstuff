@@ -1,0 +1,118 @@
+Critbit Trees
+
+(p {This module provides the "tree" and "treeset" commands that
+implement persistent map and set types for Tcl. Shared trees can be
+updated efficiently, unlike dicts--updating a dict with reference
+count greater than zero causes its internal structure to be copied.})
+
+(p {As an optimization, inserting into or updating a value in a tree
+where all subtrees along the searched path are unshared will alter the
+tree in-place without allocating new tree nodes. So for unshared
+objects trees should still offer comparable performance to dicts.})
+
+(p {Trees use the same string format as dicts--list of interleaved
+key-value pairs--and is meant to provide a COW
+(copy-on-write)-friendly replacement. Treesets are written as lists of
+values.})
+
+(p {The data structure used is a "critbit" tree. Descriptions can be found }
+ (a href={http://cr.yp.to/critbit.html} {here}) { and }
+ (a href={https://github.com/agl/critbit} {here}) { (literate C code in the PDF download).})
+
+(p (span style={font-weight:bold; color:red} {[TODO]}) {(all trivial):
+locate minimum and maximum elements, find all elements with a given
+prefix, implement full dict interface (append, lappend, incr, filter,
+etc.), modifying a value via script (c.f, get+replace).})
+
+(h2 {Usage})
+(p
+ (table border=0
+  {*}${lmap {cmd desc} {
+    {--}
+    {tree}
+    
+    {{tree create ?} (i {key value}) {...?}}
+    {{Create a tree.}}
+    
+    {{tree exists } (i {treeValue key})}
+    {{Returns 1 if } (i {key}) { exists in tree, 0 if it does not.}}
+
+    {{tree for } "\{" (i {keyVar valueVar}) "\} " (i {treeValue body})}
+    {{Run } (i {body}) { once for each mapping pair in the tree, in sorted
+      order. Compatible with the yield command.}}
+
+    {{tree get } (i {treeValue key})}
+    {{Return value corresponding to } (i {key}) {. Raise an error if no such key exists in the tree.}}
+
+    {{tree get* } (i {treeValue key})}
+    {{If } (i {key}) { exists in tree, return a list with a single element containing the
+      corresponding value. Otherwise return an empty list.}}
+
+    {{tree getor } (i {treeValue key default})}
+    {{If } (i {key}) { exists in tree, return corresponding value. Otherwise return }
+      (i {default})}
+
+    {{tree keys } (i {treeValue})}
+    {{Return all keys as a sorted list.}}
+
+    {{tree remove } (i {treeValue key})}
+    {{Return a new tree with } (i {key}) { removed if it existed in the old tree.}}
+
+    {{tree replace } (i {treeValue key value})}
+    {{Return a new tree with } (i {key}) { set to } (i {value}) { if it existed.}}
+
+    {{tree set } (i {varName key value})}
+    {{Set value of } (i {key}) { to } (i {value}) { in the tree stored in variable } (i {varName.})}
+
+    {{tree size } (i {treeValue})}
+    {{Return size of tree (number of mappings)}}
+
+    {{tree tolist } (i {treeValue})}
+    {{Return a list containing alternating keys and values, in sorted order.}}
+
+    {{tree unset } (i {varName key})}
+    {{Remove } (i {key}) { from tree stored in variable } (i {varName})}
+
+    {--}
+    {treeset}
+
+    {{treeset add } (i {set value})}
+    {{Return new set with elements of } (i {set}) { plus } (i {value.})}
+
+    {{treeset contains } (i {set value})}
+    {{Return 1 if } (i {set}) { contains } (i {value}) {, 0 otherwise.}}
+
+    {{treeset create ?} (i {value}) {...?}}
+    {{Return new set with elements ?} (i {value}) {...?.}}
+
+    {{treeset for } (i {varName body})}
+    {{Run } (i {body}) { for each element in set, in sorted order. Compatible with the yield
+      command.}}
+
+    {{treeset remove } (i {set value})}
+    {{Return new set with elements of } (i {set}) { minus } (i {value.})}
+
+    {{treeset set } (i {varName value})}
+    {{Add } (i {value}) { to set stored in variable } (i {varName.})}
+
+    {{treeset size } (i {set})}
+    {{Return number of values in } (i {set.})}
+
+    {{treeset tolist } (i {set})}
+    {{Return list containing all values in } (i {set}) {, in sorted order.}}
+
+    {{treeset unset } (i {varName value})}
+    {{Remove } (i {value}) { from set stored in variable } (i {varName.})}
+  } {
+    if {$cmd eq "--"} {
+      % {(tr (th colspan=2 style={text-align:left} "$desc"))}
+    } else {
+      % {(tr
+          (td style={background:#dcdcdc} {*}${% $cmd})
+          (td {*}${% $desc}))}
+    }
+  }}))
+
+(h2 {Download})
+(p {C source: } (a href="critbit.c.txt" {critbit.c.txt}) {. File contains two public (non-static)
+  functions treeCmd and treesetCmd with suitable signatures for Tcl_CreateObjCmd.})

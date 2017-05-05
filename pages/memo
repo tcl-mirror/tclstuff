@@ -1,0 +1,52 @@
+Memoization
+
+(p
+ (b style={color:red} {UPDATE: }) {The } (code {memoize})
+ { command has been replaced by } (code {memo})
+ {. Calling } (code {memo a b c}) { has the same effect as directly calling }
+ (code {a b c}) {. The intrep of } (i {c}) { will contain pointers to the command prefix it was
+   last called with (a and b). If they haven't change, the previous result is returned.})
+
+(hr)
+
+
+(p {This module provides the "memoize" command which takes an
+  existing command (or, more precisely, a command prefix list),
+  and registers another command that gives the same result as the
+  original (but see restrictions below) and caches the result in
+  its argument object to speed up repeated calls.})
+
+(p
+ {Usage: memoize } (i {cmd original}) { ?} (i {arg}) {...?})
+  
+(p {A few caveats apply here. First, the original command should be
+      referentially transparent and free of side effects. Otherwise
+      the original procedure and the memoized version will not behave
+      identically.})
+
+(p {Second, this is not memoization in the technical sense, because
+      the caching here is based on object identity (pointer value). In
+      Tcl, pointer equality is sufficient for string equality across
+  time (thanks to copy-on-write), but not necessary.})
+
+(p {"Real" memoization, given Tcl's EIAS (everything is a string)
+      semantics, would be looking up the value in a hash
+      table. However, if the original procedure obeys the restrictions
+      in the above paragraph, there will be no observable difference
+      between our memoization and "real" memoization.})
+
+(h2 {Rationale})
+
+(p {If you look at the C code, you'll see that the
+      implementation for memoization closely resembles the
+  implementation of }
+ (a href={promise.html} {promises}) {.})
+
+(p {Where memoization is helpful is when you want separate the
+      operating procedure from the data and still cache the result,
+      which is not possible with "force".})
+
+(h2 {Download})
+(p
+ {C source: } (a href={memo.c.txt} {memo.c.txt})
+ {. Entry point is memoizeInit.})

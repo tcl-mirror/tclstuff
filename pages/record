@@ -1,0 +1,79 @@
+Records
+(p {This module provides a single command (that I register as ":") to
+  operate on records with named fields--or "structures" in some
+  languages. I use records to bundle data into a single value where
+  I would otherwise use a Tcl array, a
+  dict/} (a href={critbit.html} {tree}) {, or a plain list.})
+
+(p {The idea behind implementing this facility in C is to give field
+    selectors an internal representation that makes working with
+  records about as fast as directly using lindex and lset.})
+
+(h2 {Usage})
+${cmd_usage {
+  {{: } (i {recValue field})}
+  {{Select } (i {field}) { from record.}}
+
+  {{: } (i {varName field value})}
+  {{Set field } (i {fiel}) { to given value in record stored in variable }
+    (i {varName}) {.}}
+}}
+
+(h2 {Format})
+
+(p {A record is a list whose first element is a list of field
+    names. The remaining elements correspond to the named
+    fields. Extra elements are ignored (but see section "Properties"
+    below) while not having enough elements for the field list is an
+    error.})
+
+(p {For example, } (code {: {{a b c} 1 2 3} a}) { gives "1".})
+
+(h2 {Performance Characteristics})
+
+(p {The first time an object is used as a field selector, the field
+    list is searched to give an index. The index is then stored inside
+    the object, along with the interned field name, to speed up
+    subsequent access. The field selector's internal representation is
+    also replaced with an array of interned field names.})
+  
+(p {Crucially, a cached field selector does not depend on any
+    particular field list object. When used, it simply verifies that
+    the index is within range, and that the field list has the same
+    field at that index (a pointer comparison). The symbol table for
+  interned field names is global to the interpreter.})
+
+(p {This has a few implications. First, if you create records in
+    different places with different instances of literal strings that
+    spell the same field list, field access will be just as fast as if
+    the records' field lists were the same object/literal
+    string. Meaning there's no requirement to have a single
+  constructor procedure for each record type.})
+  
+(p {Second, this makes it easy to create compatible extensions to
+    record types. For example, if you have a set of procedures that
+    expect a record with field list "A B", you can pass in a record
+    with field list "A B C D" with no impact on performance, since all
+  fields will be found at the expected indices.})
+
+(h2 {Properties})
+
+(p {As mentioned previously, the C command (":", or whatever you
+    decide to name it) ignores elements in the record list past the
+  named fields.})
+
+(p
+ {I use the element after the final field to store a }
+ (a href={critbit.html} {tree}) { containing additional named
+   fields, or "properties" (Lispers will recognize plists here).}
+
+ (a href={util.tcl.txt} {Here})
+ { is some Tcl code to get and set
+   record properties (search for "rec_prop"). An absent property map is treated as empty.})
+
+(h2 {Download})
+
+(p
+ {C source: } (a href={record.c.txt} {record.c.txt})
+ {(entry point: recordObjCmd), Tcl code for properties: }
+ (a href={util.tcl.txt} {util.tcl.txt.}))
